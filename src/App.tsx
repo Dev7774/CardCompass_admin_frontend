@@ -6,6 +6,8 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import ActivityLog from './pages/ActivityLog';
 import Cards from './pages/Cards';
+import AddCard from './pages/AddCard';
+import AddEditCard from './pages/AddEditCard';
 import Offers from './pages/Offers';
 import OffersList from './pages/OffersList';
 import ProtectedLayout from './partials/ProtectedLayout';
@@ -43,6 +45,9 @@ function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="/cards" element={<Cards />} />
+        <Route path="/cards/add" element={<AddEditCard />} />
+        <Route path="/cards/add-from-api" element={<AddCard />} />
+        <Route path="/cards/edit/:id" element={<AddEditCard />} />
         <Route path="/offers" element={<OffersList />} />
         <Route path="/offers/:cardId" element={<Offers />} />
         <Route path="/activity" element={<ActivityLog />} />

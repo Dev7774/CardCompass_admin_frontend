@@ -87,16 +87,27 @@ const Cards = () => {
               Manage all credit cards and their details
             </p>
           </div>
-          <Button
-            className="flex items-center bg-primary-600 hover:bg-primary-700"
-            onClick={() => {
-              setSelectedCard(null);
-              setCardModalOpen(true);
-            }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Card
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              className="flex items-center bg-primary-600 hover:bg-primary-700"
+              onClick={() => {
+                navigate('/cards/add');
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Card
+            </Button>
+            <Button
+              variant="outline"
+              className="flex items-center"
+              onClick={() => {
+                navigate('/cards/add-from-api');
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Card From API
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -283,8 +294,7 @@ const Cards = () => {
                             size="sm"
                             className="flex items-center"
                             onClick={() => {
-                              setSelectedCard(card);
-                              setCardModalOpen(true);
+                              navigate(`/cards/edit/${card.id}`);
                             }}
                           >
                             <Edit className="w-4 h-4 mr-1" />

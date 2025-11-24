@@ -102,18 +102,22 @@ export const getCardById = async (id: string): Promise<CardResponse> => {
 };
 
 export interface ApiCard {
-  id: string;
-  name: string;
-  issuer: string;
-  network?: string;
-  annualFee?: number;
+  cardKey: string;
+  cardName: string;
+  cardIssuer: string;
+  existsInDb?: boolean;
+  cardId?: string | null;
   [key: string]: any;
 }
 
 export interface SearchApiCardsResponse {
   success: boolean;
   message: string;
-  data: ApiCard[];
+  data: {
+    cards: ApiCard[];
+    count: number;
+    searchTerm: string;
+  };
   statusCode: number;
 }
 
@@ -136,11 +140,59 @@ export const searchApiCards = async (
   }
 };
 
+export interface Benefit {
+  benefitTitle: string;
+  benefitDesc?: string | null;
+}
+
+export interface EarnMultiplier {
+  spendBonusCategoryGroup?: string | null;
+  spendBonusSubcategoryGroup?: string | null;
+  spendBonusCategoryName?: string | null;
+  earnMultiplier?: number | null;
+  spendBonusDesc?: string | null;
+  isDateLimit?: boolean;
+  limitBeginDate?: string | null;
+  limitEndDate?: string | null;
+  isSpendLimit?: boolean;
+  spendLimit?: number | null;
+  spendLimitResetPeriod?: string | null;
+}
+
+export interface AnnualSpendPerk {
+  annualSpendDesc: string;
+}
+
 export interface CreateCardRequest {
   apiCardId: string;
   cardType?: string;
   active?: boolean;
   featured?: boolean;
+}
+
+export interface CreateManualCardRequest {
+  cardKey?: string;
+  cardName: string;
+  cardIssuer: string;
+  cardNetwork?: string | null;
+  cardType?: string | null;
+  cardUrl?: string | null;
+  annualFee?: number | null;
+  creditRange?: string | null;
+  rewardsDescription?: string | null;
+  introApr?: string | null;
+  regularApr?: string | null;
+  active?: boolean;
+  featured?: boolean;
+  internalNotes?: string | null;
+  hasNoFxFee?: boolean;
+  hasLoungeAccess?: boolean;
+  hasFreeNight?: boolean;
+  hasFreeCheckedBag?: boolean;
+  hasTrustedTravelerCredit?: boolean;
+  benefits?: Benefit[];
+  earnMultipliers?: EarnMultiplier[];
+  annualSpendPerks?: AnnualSpendPerk[];
 }
 
 export interface CreateCardResponse {
@@ -168,9 +220,27 @@ export const createCard = async (
 };
 
 export interface UpdateCardRequest {
-  cardType?: string;
+  cardName?: string;
+  cardIssuer?: string;
+  cardNetwork?: string | null;
+  cardType?: string | null;
+  cardUrl?: string | null;
+  annualFee?: number | null;
+  creditRange?: string | null;
+  rewardsDescription?: string | null;
+  introApr?: string | null;
+  regularApr?: string | null;
   active?: boolean;
   featured?: boolean;
+  internalNotes?: string | null;
+  hasNoFxFee?: boolean;
+  hasLoungeAccess?: boolean;
+  hasFreeNight?: boolean;
+  hasFreeCheckedBag?: boolean;
+  hasTrustedTravelerCredit?: boolean;
+  benefits?: Benefit[];
+  earnMultipliers?: EarnMultiplier[];
+  annualSpendPerks?: AnnualSpendPerk[];
 }
 
 export interface UpdateCardResponse {
@@ -179,6 +249,23 @@ export interface UpdateCardResponse {
   data: Card;
   statusCode: number;
 }
+
+export const createManualCard = async (
+  data: CreateManualCardRequest
+): Promise<CreateCardResponse> => {
+  try {
+    const response = await api.post<CreateCardResponse>(
+      `${API_BASE_URL}/cards/manual`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    throw new Error(
+      axiosError.response?.data?.message || 'Failed to create card'
+    );
+  }
+};
 
 export const updateCard = async (
   id: string,
