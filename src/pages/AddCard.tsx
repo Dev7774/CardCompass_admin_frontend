@@ -3,7 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { searchApiCards } from '@/services/api/Cards/cardsApi';
-import { useCreateCard } from '@/hooks/apiHooks/Cards/useCardMutations';
+import { useCreateCard, useSyncCardFromApi } from '@/hooks/apiHooks/Cards/useCardMutations';
 import { Search, Loader2, ArrowLeft, Plus, Edit } from 'lucide-react';
 import { ApiCard } from '@/services/api/Cards/cardsApi';
 
@@ -16,6 +16,7 @@ const AddCard = () => {
   const [addingCards, setAddingCards] = useState<Set<string>>(new Set());
   const [addingAll, setAddingAll] = useState(false);
   const createCardMutation = useCreateCard();
+  const syncCardMutation = useSyncCardFromApi();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +44,10 @@ const AddCard = () => {
     setAddingCards((prev) => new Set(prev).add(apiCard.cardKey));
     try {
       if (apiCard.existsInDb && apiCard.cardId) {
-        // Navigate to edit page if card exists
-        navigate(`/cards/edit/${apiCard.cardId}`);
+        // Sync/refetch card from API if it exists
+        await syncCardMutation.mutateAsync(apiCard.cardId);
+        // Optionally refresh the search results to show updated data
+        // The mutation will invalidate queries, so the card list will refresh
       } else {
         // Add new card
         await createCardMutation.mutateAsync({
@@ -56,7 +59,7 @@ const AddCard = () => {
         setApiCards((prev) => prev.filter((card) => card.cardKey !== apiCard.cardKey));
       }
     } catch (error) {
-      console.error('Error adding card:', error);
+      console.error('Error adding/syncing card:', error);
     } finally {
       setAddingCards((prev) => {
         const newSet = new Set(prev);
@@ -184,7 +187,7 @@ const AddCard = () => {
           ) : (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {apiCards.map((apiCard) => {
-                const isAdding = addingCards.has(apiCard.cardKey);
+                const isAdding = addingCards.has(apiCard.cardKey) || syncCardMutation.isPending;
                 return (
                   <div
                     key={apiCard.cardKey}
@@ -210,7 +213,7 @@ const AddCard = () => {
                         {isAdding ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            {apiCard.existsInDb ? 'Updating...' : 'Adding...'}
+                            {apiCard.existsInDb ? 'Syncing...' : 'Adding...'}
                           </>
                         ) : (
                           <>

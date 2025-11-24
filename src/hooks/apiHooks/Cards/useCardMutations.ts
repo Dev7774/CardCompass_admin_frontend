@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createCard, createManualCard, updateCard, CreateCardRequest, CreateManualCardRequest, UpdateCardRequest } from '@/services/api/Cards/cardsApi';
+import { createCard, createManualCard, updateCard, syncCardFromApi, CreateCardRequest, CreateManualCardRequest, UpdateCardRequest } from '@/services/api/Cards/cardsApi';
 import { useToast } from '@/hooks/use-toast';
 
 export const useCreateCard = () => {
@@ -61,6 +61,30 @@ export const useUpdateCard = () => {
       toast({
         title: 'Success',
         description: 'Card updated successfully',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
+
+export const useSyncCardFromApi = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (id: string) => syncCardFromApi(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+      queryClient.invalidateQueries({ queryKey: ['card', id] });
+      toast({
+        title: 'Success',
+        description: 'Card synced from API successfully',
       });
     },
     onError: (error: Error) => {

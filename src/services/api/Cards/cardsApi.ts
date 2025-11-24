@@ -31,6 +31,7 @@ export interface Card {
   apiData: any;
   createdAt: string;
   updatedAt: string;
+  manuallyUpdatedFields?: string[] | null;
   currentOffer?: {
     signUpBonus: string | null;
     referralUrl: string | null;
@@ -281,6 +282,29 @@ export const updateCard = async (
     const axiosError = error as AxiosError<{ message: string }>;
     throw new Error(
       axiosError.response?.data?.message || 'Failed to update card'
+    );
+  }
+};
+
+export interface SyncCardResponse {
+  success: boolean;
+  message: string;
+  data: Card;
+  statusCode: number;
+}
+
+export const syncCardFromApi = async (
+  id: string
+): Promise<SyncCardResponse> => {
+  try {
+    const response = await api.post<SyncCardResponse>(
+      `${API_BASE_URL}/cards/${id}/sync`
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    throw new Error(
+      axiosError.response?.data?.message || 'Failed to sync card from API'
     );
   }
 };
