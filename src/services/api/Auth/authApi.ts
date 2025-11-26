@@ -1,5 +1,6 @@
 import {
   LOGIN_URL,
+  VERIFY_2FA_URL,
   FORGOT_PASSWORD_URL,
   RESET_PASSWORD_URL,
   PROFILE_URL,
@@ -33,8 +34,10 @@ export interface Admin {
 }
 
 export interface LoginResponse {
-  token: string;
-  admin: Admin;
+  token?: string;
+  admin?: Admin;
+  requiresTwoFactor?: boolean;
+  message?: string;
 }
 
 export interface ForgotPasswordResponse {
@@ -54,7 +57,7 @@ export const loginUser = async (
   loginData: LoginRequest
 ): Promise<LoginResponse> => {
   try {
-    const response: AxiosResponse<BackendResponse<{ token: string; admin: Admin }>> = await api.post(
+    const response: AxiosResponse<BackendResponse<{ token?: string; admin?: Admin; requiresTwoFactor?: boolean; message?: string }>> = await api.post(
       LOGIN_URL,
       {
         email: loginData.email,
@@ -62,14 +65,27 @@ export const loginUser = async (
       }
     );
 
-    if (!response.data.success || !response.data.data) {
+    if (!response.data.success) {
       throw new Error(response.data.message || 'Login failed');
     }
 
-    // Backend returns { token, admin } in data
+    // Check if 2FA is required
+    if (response.data.data?.requiresTwoFactor) {
+      return {
+        requiresTwoFactor: true,
+        message: response.data.message || '2FA code sent to your email',
+      };
+    }
+
+    // Normal login response
+    if (!response.data.data?.token || !response.data.data?.admin) {
+      throw new Error(response.data.message || 'Login failed');
+    }
+
     return {
       token: response.data.data.token,
       admin: response.data.data.admin,
+      requiresTwoFactor: false,
     };
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -85,6 +101,49 @@ export const loginUser = async (
       throw new Error(error.message || 'Login failed');
     }
     // If error is already an Error instance (from interceptor or other)
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('An unexpected error occurred');
+  }
+};
+
+export interface Verify2FARequest {
+  email: string;
+  code: string;
+}
+
+export const verify2FA = async (
+  verifyData: Verify2FARequest
+): Promise<LoginResponse> => {
+  try {
+    const response: AxiosResponse<BackendResponse<{ token: string; admin: Admin }>> = await api.post(
+      VERIFY_2FA_URL,
+      {
+        email: verifyData.email,
+        code: verifyData.code,
+      }
+    );
+
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.message || 'Verification failed');
+    }
+
+    return {
+      token: response.data.data.token,
+      admin: response.data.data.admin,
+      requiresTwoFactor: false,
+    };
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+        throw new Error('Network Error: Please check if the server is running');
+      }
+      throw new Error(error.message || 'Verification failed');
+    }
     if (error instanceof Error) {
       throw error;
     }

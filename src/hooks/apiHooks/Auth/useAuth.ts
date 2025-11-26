@@ -4,17 +4,18 @@ import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 import {
   loginUser,
+  verify2FA,
   forgotPassword,
   resetPassword,
   getProfile,
   updateProfile,
   changePassword,
   LoginRequest,
+  Verify2FARequest,
   ResetPasswordRequest,
   UpdateProfileRequest,
   ChangePasswordRequest,
 } from '@/services/api/Auth/authApi';
-import Cookies from 'js-cookie';
 import { useToast } from '@/hooks/use-toast';
 
 export const useLogin = () => {
@@ -24,6 +25,12 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (data: LoginRequest) => loginUser(data),
     onSuccess: (data) => {
+      // If 2FA is required, don't navigate - let the component handle it
+      if (data.requiresTwoFactor) {
+        return;
+      }
+
+      // Normal login flow
       if (data.token) {
         try {
           const decoded: { exp: number } = jwtDecode(data.token);
@@ -65,6 +72,59 @@ export const useLogin = () => {
       toast.toast({
         title: 'Login Failed',
         description: error.message || 'Invalid email or password',
+        variant: 'destructive',
+      });
+    },
+  });
+};
+
+export const useVerify2FA = () => {
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  return useMutation({
+    mutationFn: (data: Verify2FARequest) => verify2FA(data),
+    onSuccess: (data) => {
+      if (data.token) {
+        try {
+          const decoded: { exp: number } = jwtDecode(data.token);
+          const expirationTime = decoded.exp * 1000;
+
+          Cookies.set('accessToken', data.token, {
+            secure: true,
+            sameSite: 'strict',
+            expires: new Date(expirationTime),
+          });
+
+          if (data.admin) {
+            Cookies.set('user', JSON.stringify(data.admin), {
+              secure: true,
+              sameSite: 'strict',
+              expires: new Date(expirationTime),
+            });
+          }
+
+          toast.toast({
+            title: 'Success',
+            description: 'Logged in successfully!',
+            variant: 'success',
+          });
+
+          navigate('/');
+        } catch (error) {
+          console.error('Failed to decode token:', error);
+          toast.toast({
+            title: 'Error',
+            description: 'Failed to process login',
+            variant: 'destructive',
+          });
+        }
+      }
+    },
+    onError: (error: Error) => {
+      toast.toast({
+        title: 'Verification Failed',
+        description: error.message || 'Invalid verification code',
         variant: 'destructive',
       });
     },
