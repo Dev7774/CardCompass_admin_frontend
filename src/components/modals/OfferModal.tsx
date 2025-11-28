@@ -18,7 +18,11 @@ import { Offer } from '@/services/api/Offers/offersApi';
 import { Loader2 } from 'lucide-react';
 
 const offerSchema = z.object({
-  signUpBonus: z.string().min(1, 'Sign-up bonus is required'),
+  signUpBonus: z.string().min(1, 'Sign-up bonus description is required'),
+  signupBonusAmount: z.string().optional(),
+  signupBonusType: z.string().optional(),
+  signupBonusSpend: z.string().optional(),
+  signupBonusLength: z.string().optional(),
   minimumSpend: z.string().optional(),
   timePeriod: z.string().optional(),
   referralUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
@@ -46,6 +50,10 @@ export const OfferModal = ({ open, onOpenChange, cardId, offer }: OfferModalProp
     resolver: zodResolver(offerSchema),
     defaultValues: {
       signUpBonus: '',
+      signupBonusAmount: '',
+      signupBonusType: '',
+      signupBonusSpend: '',
+      signupBonusLength: '',
       minimumSpend: '',
       timePeriod: '',
       referralUrl: '',
@@ -62,9 +70,13 @@ export const OfferModal = ({ open, onOpenChange, cardId, offer }: OfferModalProp
     if (open) {
       if (isEditMode && offer) {
         form.reset({
-          signUpBonus: offer.signUpBonus || '',
+          signUpBonus: offer.signUpBonus || offer.signupBonusDescription || '',
+          signupBonusAmount: offer.signupBonusAmount || '',
+          signupBonusType: offer.signupBonusType || offer.signupBonusItem || '',
+          signupBonusSpend: offer.signupBonusSpend?.toString() || offer.minimumSpend?.toString() || '',
+          signupBonusLength: offer.signupBonusLength?.toString() || '',
           minimumSpend: offer.minimumSpend?.toString() || '',
-          timePeriod: offer.timePeriod || '',
+          timePeriod: offer.timePeriod || offer.signupBonusLengthPeriod || '',
           referralUrl: offer.referralUrl || '',
           publicUrl: offer.publicUrl || '',
           internalLabel: offer.internalLabel || '',
@@ -74,6 +86,10 @@ export const OfferModal = ({ open, onOpenChange, cardId, offer }: OfferModalProp
       } else {
         form.reset({
           signUpBonus: '',
+          signupBonusAmount: '',
+          signupBonusType: '',
+          signupBonusSpend: '',
+          signupBonusLength: '',
           minimumSpend: '',
           timePeriod: '',
           referralUrl: '',
@@ -89,7 +105,12 @@ export const OfferModal = ({ open, onOpenChange, cardId, offer }: OfferModalProp
   const onSubmit = async (data: OfferFormData) => {
     try {
       const submitData = {
+        signupBonusDesc: data.signUpBonus,
         signUpBonus: data.signUpBonus,
+        signupBonusAmount: data.signupBonusAmount || undefined,
+        signupBonusType: data.signupBonusType || undefined,
+        signupBonusSpend: data.signupBonusSpend ? parseFloat(data.signupBonusSpend) : (data.minimumSpend ? parseFloat(data.minimumSpend) : undefined),
+        signupBonusLength: data.signupBonusLength ? parseInt(data.signupBonusLength) : undefined,
         minimumSpend: data.minimumSpend ? parseFloat(data.minimumSpend) : undefined,
         timePeriod: data.timePeriod || undefined,
         referralUrl: data.referralUrl || undefined,
@@ -145,7 +166,7 @@ export const OfferModal = ({ open, onOpenChange, cardId, offer }: OfferModalProp
 
           <div className="space-y-2">
             <Label htmlFor="signUpBonus">
-              Sign-Up Bonus <span className="text-red-500">*</span>
+              Sign-Up Bonus Description <span className="text-red-500">*</span>
             </Label>
             <Input
               id="signUpBonus"
@@ -158,6 +179,73 @@ export const OfferModal = ({ open, onOpenChange, cardId, offer }: OfferModalProp
                 {form.formState.errors.signUpBonus.message}
               </p>
             )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="signupBonusAmount">Sign-Up Bonus Amount</Label>
+              <Input
+                id="signupBonusAmount"
+                {...form.register('signupBonusAmount')}
+                placeholder="e.g., 80000"
+                className={form.formState.errors.signupBonusAmount ? 'border-red-600' : ''}
+              />
+              {form.formState.errors.signupBonusAmount && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.signupBonusAmount.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="signupBonusType">Sign-Up Bonus Type/Item</Label>
+              <Input
+                id="signupBonusType"
+                {...form.register('signupBonusType')}
+                placeholder="e.g., Points, Miles"
+                className={form.formState.errors.signupBonusType ? 'border-red-600' : ''}
+              />
+              {form.formState.errors.signupBonusType && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.signupBonusType.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="signupBonusSpend">Sign-Up Bonus Spend</Label>
+              <Input
+                id="signupBonusSpend"
+                type="number"
+                step="0.01"
+                {...form.register('signupBonusSpend')}
+                placeholder="e.g., 4000"
+                className={form.formState.errors.signupBonusSpend ? 'border-red-600' : ''}
+              />
+              {form.formState.errors.signupBonusSpend && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.signupBonusSpend.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="signupBonusLength">Sign-Up Bonus Length</Label>
+              <Input
+                id="signupBonusLength"
+                type="number"
+                {...form.register('signupBonusLength')}
+                placeholder="e.g., 90"
+                className={form.formState.errors.signupBonusLength ? 'border-red-600' : ''}
+              />
+              {form.formState.errors.signupBonusLength && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.signupBonusLength.message}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -24,7 +24,10 @@ export interface Card {
   purchaseAPR: string | null;
   balanceTransferAPR: string | null;
   creditScore: string | null;
+  creditRange?: string | null;
   cardType: string | null;
+  cardUrl?: string | null;
+  baseSpendEarnCategory?: string | null;
   active: boolean;
   featured: boolean;
   lastApiSync: string | null;
@@ -229,6 +232,7 @@ export interface UpdateCardRequest {
   annualFee?: number | null;
   creditRange?: string | null;
   rewardsDescription?: string | null;
+  baseSpendEarnCategory?: string | null;
   introApr?: string | null;
   regularApr?: string | null;
   active?: boolean;

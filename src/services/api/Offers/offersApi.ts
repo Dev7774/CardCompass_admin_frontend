@@ -6,6 +6,13 @@ export interface Offer {
   id: string;
   cardId: string;
   signUpBonus: string;
+  signupBonusDescription?: string;
+  signupBonusAmount?: string | null;
+  signupBonusType?: string | null;
+  signupBonusItem?: string | null;
+  signupBonusSpend?: number | null;
+  signupBonusLength?: number | null;
+  signupBonusLengthPeriod?: string | null;
   minimumSpend: number | null;
   timePeriod: string | null;
   startDate: string | null;
@@ -56,6 +63,31 @@ export const getOffersByCardId = async (
   }
 };
 
+export const getCurrentOffer = async (
+  cardId: string
+): Promise<OfferResponse> => {
+  try {
+    const response = await api.get<OfferResponse>(
+      `${API_BASE_URL}/offers/cards/${cardId}/offers/current`
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    // If no current offer found, return a response with null data
+    if (axiosError.response?.status === 404) {
+      return {
+        success: false,
+        message: 'No current offer found',
+        data: null as any,
+        statusCode: 404,
+      };
+    }
+    throw new Error(
+      axiosError.response?.data?.message || 'Failed to fetch current offer'
+    );
+  }
+};
+
 export const getAllOffers = async (): Promise<OffersResponse> => {
   try {
     // Since backend doesn't have a direct endpoint, we'll fetch all cards and their offers
@@ -79,7 +111,13 @@ export const getAllOffers = async (): Promise<OffersResponse> => {
 };
 
 export interface CreateOfferRequest {
-  signUpBonus: string;
+  signUpBonus?: string;
+  signupBonusDesc?: string;
+  signupBonusAmount?: string;
+  signupBonusType?: string;
+  signupBonusSpend?: number;
+  signupBonusLength?: number;
+  signupBonusLengthPeriod?: string;
   minimumSpend?: number;
   timePeriod?: string;
   startDate?: string;
@@ -112,6 +150,12 @@ export const createOffer = async (
 
 export interface UpdateOfferRequest {
   signUpBonus?: string;
+  signupBonusDesc?: string;
+  signupBonusAmount?: string;
+  signupBonusType?: string;
+  signupBonusSpend?: number;
+  signupBonusLength?: number;
+  signupBonusLengthPeriod?: string;
   minimumSpend?: number;
   timePeriod?: string;
   startDate?: string;

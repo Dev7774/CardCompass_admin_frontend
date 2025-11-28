@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, X, Loader2 } from 'lucide-react';
 import { getCardById, CreateManualCardRequest, Benefit, EarnMultiplier, AnnualSpendPerk } from '@/services/api/Cards/cardsApi';
 import { useCreateManualCard, useUpdateCard } from '@/hooks/apiHooks/Cards/useCardMutations';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentOffer, updateOffer } from '@/services/api/Offers/offersApi';
 
 const AddEditCard = () => {
   const { sidebarOpen } = useOutletContext<{ sidebarOpen: boolean }>();
@@ -30,6 +31,7 @@ const AddEditCard = () => {
   const [annualFee, setAnnualFee] = useState('');
   const [creditRange, setCreditRange] = useState('');
   const [rewardsDescription, setRewardsDescription] = useState('');
+  const [baseSpendEarnCategory, setBaseSpendEarnCategory] = useState('');
   const [introApr, setIntroApr] = useState('');
   const [regularApr, setRegularApr] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
@@ -52,6 +54,14 @@ const AddEditCard = () => {
   }]);
   const [annualSpendPerks, setAnnualSpendPerks] = useState<AnnualSpendPerk[]>([{ annualSpendDesc: '' }]);
 
+  // Signup Bonus Fields (for current offer)
+  const [currentOfferId, setCurrentOfferId] = useState<string | null>(null);
+  const [signupBonusDescription, setSignupBonusDescription] = useState('');
+  const [signupBonusAmount, setSignupBonusAmount] = useState('');
+  const [signupBonusType, setSignupBonusType] = useState('');
+  const [signupBonusSpend, setSignupBonusSpend] = useState('');
+  const [signupBonusLength, setSignupBonusLength] = useState('');
+
   useEffect(() => {
     if (isEditMode && id) {
       loadCardData();
@@ -73,6 +83,7 @@ const AddEditCard = () => {
         setAnnualFee(card.annualFee?.toString() || '');
         setCreditRange(card.creditScore || card.creditRange || '');
         setRewardsDescription(card.rewards || card.rewardsDescription || '');
+        setBaseSpendEarnCategory(card.baseSpendEarnCategory || '');
         setIntroApr(card.introApr || '');
         setRegularApr(card.regularApr || card.purchaseAPR || '');
         setInternalNotes(card.internalNotes || '');
@@ -124,6 +135,27 @@ const AddEditCard = () => {
           })));
         } else {
           setAnnualSpendPerks([{ annualSpendDesc: '' }]);
+        }
+
+        // Load current offer if editing
+        if (isEditMode && id) {
+          try {
+            const offerResponse = await getCurrentOffer(id);
+            if (offerResponse.success && offerResponse.data) {
+              const offer = offerResponse.data as any;
+              setCurrentOfferId(offer.id);
+              setSignupBonusDescription(offer.signUpBonus || offer.signupBonusDescription || offer.signupBonusDesc || '');
+              setSignupBonusAmount(offer.signupBonusAmount || '');
+              setSignupBonusType(offer.signupBonusType || offer.signupBonusItem || '');
+              setSignupBonusSpend(offer.signupBonusSpend?.toString() || offer.minimumSpend?.toString() || '');
+              setSignupBonusLength(offer.signupBonusLength?.toString() || '');
+            }
+          } catch (offerError: any) {
+            // No current offer found, that's okay
+            if (offerError.message !== 'No current offer found') {
+              console.log('Error loading current offer:', offerError);
+            }
+          }
         }
       }
     } catch (error: any) {
@@ -215,6 +247,7 @@ const AddEditCard = () => {
           annualFee: annualFee ? parseFloat(annualFee) : null,
           creditRange: creditRange.trim() || null,
           rewardsDescription: rewardsDescription.trim() || null,
+          baseSpendEarnCategory: baseSpendEarnCategory.trim() || null,
           introApr: introApr.trim() || null,
           regularApr: regularApr.trim() || null,
           active,
@@ -231,6 +264,23 @@ const AddEditCard = () => {
         };
 
         await updateCardMutation.mutateAsync({ id, data: updateData });
+
+        // Update current offer if it exists and fields are provided
+        if (currentOfferId && (signupBonusDescription || signupBonusAmount || signupBonusType || signupBonusSpend || signupBonusLength)) {
+          try {
+            await updateOffer(currentOfferId, {
+              signupBonusDesc: signupBonusDescription || undefined,
+              signUpBonus: signupBonusDescription || undefined,
+              signupBonusAmount: signupBonusAmount || undefined,
+              signupBonusType: signupBonusType || undefined,
+              signupBonusSpend: signupBonusSpend ? parseFloat(signupBonusSpend) : undefined,
+              signupBonusLength: signupBonusLength ? parseInt(signupBonusLength) : undefined,
+            });
+          } catch (offerError: any) {
+            console.error('Failed to update offer:', offerError);
+            // Don't fail the whole save if offer update fails
+          }
+        }
       } else {
         // Create new card
         const cardData: CreateManualCardRequest = {
@@ -243,6 +293,7 @@ const AddEditCard = () => {
           annualFee: annualFee ? parseFloat(annualFee) : null,
           creditRange: creditRange.trim() || null,
           rewardsDescription: rewardsDescription.trim() || null,
+          baseSpendEarnCategory: baseSpendEarnCategory.trim() || null,
           introApr: introApr.trim() || null,
           regularApr: regularApr.trim() || null,
           active,
@@ -392,6 +443,16 @@ const AddEditCard = () => {
                 />
               </div>
               <div>
+                <Label htmlFor="baseSpendEarnCategory" className="text-gray-700 dark:text-gray-300">Base Spend Earn Category</Label>
+                <Input
+                  id="baseSpendEarnCategory"
+                  value={baseSpendEarnCategory}
+                  onChange={(e) => setBaseSpendEarnCategory(e.target.value)}
+                  placeholder="e.g., Dining, Travel"
+                  className="mt-1"
+                />
+              </div>
+              <div>
                 <Label htmlFor="introApr" className="text-gray-700 dark:text-gray-300">Intro APR</Label>
                 <Input
                   id="introApr"
@@ -503,6 +564,72 @@ const AddEditCard = () => {
               </label>
             </div>
           </div>
+
+          {/* Signup Bonus Fields (Current Offer) */}
+          {isEditMode && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Current Offer - Signup Bonus</h2>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="signupBonusDescription" className="text-gray-700 dark:text-gray-300">Sign-Up Bonus Description</Label>
+                  <Input
+                    id="signupBonusDescription"
+                    value={signupBonusDescription}
+                    onChange={(e) => setSignupBonusDescription(e.target.value)}
+                    placeholder="e.g., 80,000 bonus points"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="signupBonusAmount" className="text-gray-700 dark:text-gray-300">Sign-Up Bonus Amount</Label>
+                    <Input
+                      id="signupBonusAmount"
+                      value={signupBonusAmount}
+                      onChange={(e) => setSignupBonusAmount(e.target.value)}
+                      placeholder="e.g., 80000"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="signupBonusType" className="text-gray-700 dark:text-gray-300">Sign-Up Bonus Type/Item</Label>
+                    <Input
+                      id="signupBonusType"
+                      value={signupBonusType}
+                      onChange={(e) => setSignupBonusType(e.target.value)}
+                      placeholder="e.g., Points, Miles"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="signupBonusSpend" className="text-gray-700 dark:text-gray-300">Sign-Up Bonus Spend</Label>
+                    <Input
+                      id="signupBonusSpend"
+                      type="number"
+                      step="0.01"
+                      value={signupBonusSpend}
+                      onChange={(e) => setSignupBonusSpend(e.target.value)}
+                      placeholder="e.g., 4000"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="signupBonusLength" className="text-gray-700 dark:text-gray-300">Sign-Up Bonus Length</Label>
+                    <Input
+                      id="signupBonusLength"
+                      type="number"
+                      value={signupBonusLength}
+                      onChange={(e) => setSignupBonusLength(e.target.value)}
+                      placeholder="e.g., 90"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Benefits */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
