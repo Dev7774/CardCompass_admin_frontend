@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext, useParams, useNavigate } from 'react-router-dom';
 import { useOffers } from '@/hooks/apiHooks/Offers/useOffers';
 import { useCardById } from '@/hooks/apiHooks/Cards/useCard';
+import { useUpdateOffer } from '@/hooks/apiHooks/Offers/useOfferMutations';
 import { OfferModal } from '@/components/modals/OfferModal';
 import { EditAllOffersModal } from '@/components/modals/EditAllOffersModal';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,8 @@ const Offers = () => {
   const navigate = useNavigate();
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [imageError, setImageError] = useState(false);
+  const updateOfferMutation = useUpdateOffer(cardId || '');
 
   const { data: cardData, isLoading: cardLoading } = useCardById(cardId || '');
   const { data: offersData, isLoading: offersLoading } = useOffers(cardId || '');
@@ -23,6 +26,11 @@ const Offers = () => {
   const card = (cardData as any)?.data;
   const offers = (offersData as any)?.data || [];
   const earnMultipliers: EarnMultiplier[] = ((card as any)?.earnMultipliers || []) as EarnMultiplier[];
+
+  // Reset image error when card changes
+  useEffect(() => {
+    setImageError(false);
+  }, [cardId, card?.image]);
 
   const getIssuerColor = (issuer: string) => {
     const colors: { [key: string]: string } = {
@@ -50,6 +58,19 @@ const Offers = () => {
 
   const handleCopyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
+  };
+
+  const handleToggleVisible = async (offer: Offer) => {
+    try {
+      await updateOfferMutation.mutateAsync({
+        id: offer.id,
+        data: {
+          visible: !offer.visible,
+        },
+      });
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
   };
 
 
@@ -124,9 +145,20 @@ const Offers = () => {
         {/* Card Summary */}
         <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-primary-100 rounded-lg">
-              <CreditCard className="w-6 h-6 text-primary-600" />
-            </div>
+            {card.image && !imageError ? (
+              <div className="flex-shrink-0">
+                <img
+                  src={card.image}
+                  alt={card.name}
+                  className="w-24 h-16 object-contain rounded-lg border border-gray-200 dark:border-gray-700"
+                  onError={() => setImageError(true)}
+                />
+              </div>
+            ) : (
+              <div className="p-3 bg-primary-100 rounded-lg">
+                <CreditCard className="w-6 h-6 text-primary-600" />
+              </div>
+            )}
             <div className="flex-1">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                 {card.name}
@@ -289,10 +321,11 @@ const Offers = () => {
                             <input
                               type="checkbox"
                               checked={offer.visible}
-                              readOnly
+                              onChange={() => handleToggleVisible(offer)}
+                              disabled={updateOfferMutation.isPending}
                               className="sr-only peer"
                             />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
                           </label>
                         </td>
                       </tr>

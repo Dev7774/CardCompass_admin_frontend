@@ -27,6 +27,7 @@ export interface Card {
   creditRange?: string | null;
   cardType: string | null;
   cardUrl?: string | null;
+  image?: string | null;
   baseSpendEarnCategory?: string | null;
   active: boolean;
   featured: boolean;

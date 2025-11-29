@@ -1,34 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useCards } from '@/hooks/apiHooks/Cards/useCards';
-import { useQuery } from '@tanstack/react-query';
-import { getOffersByCardId } from '@/services/api/Offers/offersApi';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getOffersByCardId, updateOffer, UpdateOfferRequest } from '@/services/api/Offers/offersApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Edit, Check, X, Copy } from 'lucide-react';
 import { Offer } from '@/services/api/Offers/offersApi';
+import { useToast } from '@/hooks/use-toast';
 
 const OffersList = () => {
   const { sidebarOpen } = useOutletContext<{ sidebarOpen: boolean }>();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string>('');
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: cardsData, isLoading: cardsLoading } = useCards({ page: 1, limit: 1000 });
-  const cards = cardsData?.data?.data || [];
+  const cards = (cardsData as any)?.data?.data || [];
 
   // Fetch offers for all cards using Promise.all
-  const { data: allOffersData, isLoading: offersLoading } = useQuery({
-    queryKey: ['allOffers', cards.map(c => c.id).join(',')],
+  const { data: allOffersData, isLoading: offersLoading } = useQuery<Offer[]>({
+    queryKey: ['allOffers', cards.map((c: any) => c.id).join(',')],
     queryFn: async () => {
       if (cards.length === 0) return [];
-      const offersPromises = cards.map(card => getOffersByCardId(card.id));
+      const offersPromises = cards.map((card: any) => getOffersByCardId(card.id));
       const results = await Promise.all(offersPromises);
-      const offers = results.flatMap(result => result.data || []);
+      const offers = results.flatMap((result: any) => result.data || []);
       // Ensure each offer has card information, using cards list as fallback
-      return offers.map(offer => {
+      return offers.map((offer: Offer) => {
         if (!offer.card && offer.cardId) {
-          const card = cards.find(c => c.id === offer.cardId);
+          const card = cards.find((c: any) => c.id === offer.cardId);
           if (card) {
             return {
               ...offer,
@@ -64,20 +67,46 @@ const OffersList = () => {
     return true;
   });
 
-  const getIssuerColor = (issuer: string) => {
-    const colors: { [key: string]: string } = {
-      'Chase': 'bg-blue-100 text-blue-700',
-      'Amex': 'bg-yellow-100 text-yellow-700',
-      'American Express': 'bg-yellow-100 text-yellow-700',
-      'Capital One': 'bg-red-100 text-red-700',
-      'Citi': 'bg-purple-100 text-purple-700',
-      'Discover': 'bg-orange-100 text-orange-700',
-    };
-    return colors[issuer] || 'bg-gray-100 text-gray-700';
-  };
-
   const handleCopyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
+  };
+
+  const updateOfferMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateOfferRequest }) =>
+      updateOffer(id, data),
+    onSuccess: (_, variables) => {
+      // Invalidate all offers queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['allOffers'] });
+      // Also invalidate the specific card's offers if we have the cardId
+      const offer = allOffers.find(o => o.id === variables.id);
+      if (offer?.cardId) {
+        queryClient.invalidateQueries({ queryKey: ['offers', offer.cardId] });
+      }
+      toast({
+        title: 'Success',
+        description: 'Offer visibility updated successfully',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleToggleVisible = async (offer: Offer) => {
+    try {
+      await updateOfferMutation.mutateAsync({
+        id: offer.id,
+        data: {
+          visible: !offer.visible,
+        },
+      });
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
   };
 
   return (
@@ -120,7 +149,7 @@ const OffersList = () => {
               className="appearance-none bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-4 py-2 pr-8 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="">All Cards</option>
-              {cards.map((card) => (
+              {cards.map((card: any) => (
                 <option key={card.id} value={card.id}>
                   {card.name}
                 </option>
@@ -248,10 +277,11 @@ const OffersList = () => {
                             <input
                               type="checkbox"
                               checked={offer.visible}
-                              readOnly
+                              onChange={() => handleToggleVisible(offer)}
+                              disabled={updateOfferMutation.isPending}
                               className="sr-only peer"
                             />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
                           </label>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
