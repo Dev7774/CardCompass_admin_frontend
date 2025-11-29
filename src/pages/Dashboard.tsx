@@ -1,73 +1,186 @@
 import { Download, Plus, CreditCard, Link2, Tag, EyeOff, TrendingUp, TrendingDown, Minus, Edit, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useDashboard } from '@/hooks/apiHooks/Dashboard/useDashboard';
+import { useCards } from '@/hooks/apiHooks/Cards/useCards';
+import { useQuery } from '@tanstack/react-query';
+import { getOffersByCardId } from '@/services/api/Offers/offersApi';
+import { exportCardsToCSV, exportOffersToCSV } from '@/utils/exportUtils';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 const Dashboard = () => {
   const { sidebarOpen } = useOutletContext<{ sidebarOpen: boolean }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: dashboardData, isLoading, error } = useDashboard();
+  const [isExporting, setIsExporting] = useState(false);
   
-  // Mock data - will be replaced with API calls later
-  const metrics = {
-    activeCards: { value: 248, change: 12, trend: 'up' },
-    missingReferrals: { value: 34, change: 0, trend: 'down' },
-    totalOffers: { value: 1247, change: 8, trend: 'up' },
-    hiddenOffers: { value: 89, change: 0, trend: 'neutral' },
+  // Get metrics from API or use defaults
+  const metrics = dashboardData?.data?.metrics || {
+    activeCards: { value: 0, change: 0, trend: 'neutral' as const },
+    missingReferrals: { value: 0, change: 0, trend: 'down' as const },
+    totalOffers: { value: 0, change: 0, trend: 'neutral' as const },
+    hiddenOffers: { value: 0, change: 0, trend: 'neutral' as const },
   };
 
-  const quickActions = [
-    { name: 'Add New Card', icon: Plus, href: '/cards/new', iconColor: 'bg-blue-100 text-blue-600' },
-    { name: 'Edit Offers', icon: Edit, href: '/offers', iconColor: 'bg-green-100 text-green-600' },
-    { name: 'Update Referral Links', icon: Link2, href: '/cards?filter=no-referral', iconColor: 'bg-orange-100 text-orange-600' },
-    { name: 'Export Data', icon: FileText, href: '#', iconColor: 'bg-purple-100 text-purple-600' },
-    { name: 'View Reports', icon: TrendingUp, href: '#', iconColor: 'bg-blue-100 text-blue-600' },
+  // Fetch all cards and offers for export
+  const { data: cardsData } = useCards({ page: 1, limit: 10000 });
+  const cards = cardsData?.data?.data || [];
+
+  const { data: allOffersData } = useQuery({
+    queryKey: ['allOffersForExport', cards.map((c: any) => c.id).join(',')],
+    queryFn: async () => {
+      if (cards.length === 0) return [];
+      const offersPromises = cards.map((card: any) => getOffersByCardId(card.id));
+      const results = await Promise.all(offersPromises);
+      return results.flatMap((result: any) => result.data || []);
+    },
+    enabled: cards.length > 0,
+  });
+
+  const allOffers = allOffersData || [];
+
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+      let exportedCards = false;
+      let exportedOffers = false;
+
+      // Export Cards
+      if (cards.length > 0) {
+        await exportCardsToCSV(cards);
+        exportedCards = true;
+      }
+
+      // Small delay to ensure first file downloads before second
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Export Offers
+      if (allOffers.length > 0) {
+        await exportOffersToCSV(allOffers);
+        exportedOffers = true;
+      }
+
+      // Show success message
+      if (exportedCards && exportedOffers) {
+        toast({
+          title: 'Success',
+          description: `Exported ${cards.length} cards and ${allOffers.length} offers to CSV`,
+        });
+      } else if (exportedCards) {
+        toast({
+          title: 'Success',
+          description: `Exported ${cards.length} cards to CSV`,
+        });
+      } else if (exportedOffers) {
+        toast({
+          title: 'Success',
+          description: `Exported ${allOffers.length} offers to CSV`,
+        });
+      } else {
+        toast({
+          title: 'No Data',
+          description: 'No cards or offers available to export',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to export data',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const quickActions: Array<{
+    name: string;
+    icon: any;
+    href: string;
+    iconColor: string;
+    onClick?: () => void;
+  }> = [
+    { name: 'Add New Card', icon: Plus, href: '/cards/add', iconColor: 'bg-blue-100 text-blue-600' },
+    { name: 'Manage Offers', icon: Edit, href: '/offers', iconColor: 'bg-green-100 text-green-600' },
+    { name: 'Update Referral Links', icon: Link2, href: '/offers', iconColor: 'bg-orange-100 text-orange-600' },
+    { name: 'Export Card/Offer Data', icon: FileText, href: '#', iconColor: 'bg-purple-100 text-purple-600', onClick: handleExportData },
+    { name: 'View Reports', icon: TrendingUp, href: '/activity', iconColor: 'bg-blue-100 text-blue-600' },
   ];
 
-  const chartData = [
-    { month: 'Jan', added: 42, updated: 28 },
-    { month: 'Feb', added: 38, updated: 32 },
-    { month: 'Mar', added: 56, updated: 41 },
-    { month: 'Apr', added: 48, updated: 37 },
-    { month: 'May', added: 61, updated: 45 },
-    { month: 'Jun', added: 58, updated: 42 },
-  ];
+  // Get chart data from API or use defaults
+  const chartData = dashboardData?.data?.chartData || [];
 
-  const recentActivities = [
-    {
-      type: 'card_added',
-      icon: CreditCard,
-      iconColor: 'text-blue-600 bg-blue-50',
-      description: 'Chase Sapphire Preferred was added to the system.',
-      time: '2 hours ago',
-    },
-    {
-      type: 'offer_updated',
-      icon: Tag,
-      iconColor: 'text-green-600 bg-green-50',
-      description: 'Welcome bonus increased for American Express Gold.',
-      time: '5 hours ago',
-    },
-    {
-      type: 'referral_updated',
-      icon: Link2,
-      iconColor: 'text-orange-600 bg-orange-50',
-      description: 'Capital One Venture X referral link has been updated.',
-      time: '1 day ago',
-    },
-    {
-      type: 'offer_hidden',
-      icon: EyeOff,
-      iconColor: 'text-purple-600 bg-purple-50',
-      description: 'Citi Premier Card offer was hidden from public view.',
-      time: '2 days ago',
-    },
-    {
-      type: 'card_edited',
-      icon: CreditCard,
-      iconColor: 'text-blue-400 bg-blue-50',
-      description: 'Card details edited for Bank of America Customized Cash.',
-      time: '3 days ago',
-    },
-  ];
+  // Map activity types to icons
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'card_added':
+        return CreditCard;
+      case 'offer_updated':
+        return Tag;
+      case 'referral_updated':
+        return Link2;
+      case 'offer_hidden':
+        return EyeOff;
+      case 'card_edited':
+        return CreditCard;
+      default:
+        return Edit;
+    }
+  };
+
+  const getActivityIconColor = (type: string) => {
+    switch (type) {
+      case 'card_added':
+        return 'text-blue-600 bg-blue-50';
+      case 'offer_updated':
+        return 'text-green-600 bg-green-50';
+      case 'referral_updated':
+        return 'text-orange-600 bg-orange-50';
+      case 'offer_hidden':
+        return 'text-purple-600 bg-purple-50';
+      case 'card_edited':
+        return 'text-blue-400 bg-blue-50';
+      default:
+        return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  // Get recent activities from API or use defaults
+  const recentActivities = dashboardData?.data?.recentActivities?.map((activity) => ({
+    type: activity.type,
+    icon: getActivityIcon(activity.type),
+    iconColor: getActivityIconColor(activity.type),
+    description: activity.description,
+    time: activity.time,
+  })) || [];
+
+  if (isLoading) {
+    return (
+      <main className="grow bg-gray-50 dark:bg-gray-900">
+        <div className={`mx-auto w-full px-4 pb-8 sm:px-6 lg:px-8 ${sidebarOpen ? 'pt-6' : 'pt-4'}`}>
+          <div className="flex items-center justify-center h-64">
+            <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="grow bg-gray-50 dark:bg-gray-900">
+        <div className={`mx-auto w-full px-4 pb-8 sm:px-6 lg:px-8 ${sidebarOpen ? 'pt-6' : 'pt-4'}`}>
+          <div className="flex items-center justify-center h-64">
+            <p className="text-red-500">Error loading dashboard data</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="grow bg-gray-50 dark:bg-gray-900">
@@ -87,10 +200,12 @@ const Dashboard = () => {
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-            <Button className="flex items-center bg-primary-600 hover:bg-primary-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Add New
-            </Button>
+            <Link to="/cards/add">
+              <Button className="flex items-center bg-primary-600 hover:bg-primary-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Add New
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -114,13 +229,15 @@ const Dashboard = () => {
                         ↑ {metrics.activeCards.change}% from last month
                       </span>
                     </>
-                  ) : (
+                  ) : metrics.activeCards.trend === 'down' ? (
                     <>
                       <TrendingDown className="w-4 h-4 text-red-600 mr-1" />
                       <span className="text-sm text-red-600">
                         ↓ {metrics.activeCards.change}% from last month
                       </span>
                     </>
+                  ) : (
+                    <span className="text-sm text-gray-400">— No change</span>
                   )}
                 </div>
               </div>
@@ -162,10 +279,23 @@ const Dashboard = () => {
                   {metrics.totalOffers.value.toLocaleString()}
                 </p>
                 <div className="flex items-center mt-2">
-                  <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
-                  <span className="text-sm text-green-600">
-                    ↑ {metrics.totalOffers.change}% from last month
-                  </span>
+                  {metrics.totalOffers.trend === 'up' ? (
+                    <>
+                      <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
+                      <span className="text-sm text-green-600">
+                        ↑ {metrics.totalOffers.change}% from last month
+                      </span>
+                    </>
+                  ) : metrics.totalOffers.trend === 'down' ? (
+                    <>
+                      <TrendingDown className="w-4 h-4 text-red-600 mr-1" />
+                      <span className="text-sm text-red-600">
+                        ↓ {metrics.totalOffers.change}% from last month
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-400">— No change</span>
+                  )}
                 </div>
               </div>
               <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
@@ -185,7 +315,23 @@ const Dashboard = () => {
                   {metrics.hiddenOffers.value}
                 </p>
                 <div className="flex items-center mt-2">
-                  <span className="text-sm text-gray-400">— No change</span>
+                  {metrics.hiddenOffers.trend === 'up' ? (
+                    <>
+                      <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
+                      <span className="text-sm text-green-600">
+                        ↑ {metrics.hiddenOffers.change}% from last month
+                      </span>
+                    </>
+                  ) : metrics.hiddenOffers.trend === 'down' ? (
+                    <>
+                      <TrendingDown className="w-4 h-4 text-red-600 mr-1" />
+                      <span className="text-sm text-red-600">
+                        ↓ {metrics.hiddenOffers.change}% from last month
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-400">— No change</span>
+                  )}
                 </div>
               </div>
               <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
@@ -223,8 +369,6 @@ const Dashboard = () => {
                 />
                 <YAxis 
                   stroke="#6b7280"
-                  domain={[0, 60]}
-                  ticks={[0, 10, 20, 30, 40, 50, 60]}
                   tick={{ fill: '#6b7280' }}
                 />
                 <Tooltip 
@@ -252,6 +396,23 @@ const Dashboard = () => {
             <div className="space-y-3">
               {quickActions.map((action, index) => {
                 const Icon = action.icon;
+                if (action.onClick) {
+                  return (
+                    <button
+                      key={index}
+                      onClick={action.onClick}
+                      disabled={isExporting}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className={`p-2 rounded-lg ${action.iconColor} group-hover:scale-105 transition-transform`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {action.name}
+                      </span>
+                    </button>
+                  );
+                }
                 return (
                   <Link
                     key={index}
@@ -290,27 +451,33 @@ const Dashboard = () => {
             </Link>
           </div>
           <div className="space-y-4">
-            {recentActivities.map((activity, index) => {
-              const Icon = activity.icon;
-              return (
-                <div
-                  key={index}
-                  className="flex items-start gap-4 p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <div className={`p-2 rounded-lg ${activity.iconColor}`}>
-                    <Icon className="w-5 h-5" />
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => {
+                const Icon = activity.icon;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-start gap-4 p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className={`p-2 rounded-lg ${activity.iconColor}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        {activity.description}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {activity.time}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900 dark:text-white">
-                      {activity.description}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                No recent activity
+              </p>
+            )}
           </div>
         </div>
       </div>
