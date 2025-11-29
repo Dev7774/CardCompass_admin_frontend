@@ -9,6 +9,8 @@ import { getOffersByCardId } from '@/services/api/Offers/offersApi';
 import { exportCardsToCSV, exportOffersToCSV } from '@/utils/exportUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { DashboardResponse } from '@/services/api/Dashboard/dashboardApi';
+import { CardsResponse } from '@/services/api/Cards/cardsApi';
 
 const Dashboard = () => {
   const { sidebarOpen } = useOutletContext<{ sidebarOpen: boolean }>();
@@ -18,7 +20,8 @@ const Dashboard = () => {
   const [isExporting, setIsExporting] = useState(false);
   
   // Get metrics from API or use defaults
-  const metrics = dashboardData?.data?.metrics || {
+  const dashboardResponse = dashboardData as DashboardResponse | undefined;
+  const metrics = dashboardResponse?.data?.metrics || {
     activeCards: { value: 0, change: 0, trend: 'neutral' as const },
     missingReferrals: { value: 0, change: 0, trend: 'down' as const },
     totalOffers: { value: 0, change: 0, trend: 'neutral' as const },
@@ -27,7 +30,8 @@ const Dashboard = () => {
 
   // Fetch all cards and offers for export
   const { data: cardsData } = useCards({ page: 1, limit: 10000 });
-  const cards = cardsData?.data?.data || [];
+  const cardsResponse = cardsData as CardsResponse | undefined;
+  const cards = cardsResponse?.data?.data || [];
 
   const { data: allOffersData } = useQuery({
     queryKey: ['allOffersForExport', cards.map((c: any) => c.id).join(',')],
@@ -112,7 +116,7 @@ const Dashboard = () => {
   ];
 
   // Get chart data from API or use defaults
-  const chartData = dashboardData?.data?.chartData || [];
+  const chartData = dashboardResponse?.data?.chartData || [];
 
   // Map activity types to icons
   const getActivityIcon = (type: string) => {
@@ -150,7 +154,7 @@ const Dashboard = () => {
   };
 
   // Get recent activities from API or use defaults
-  const recentActivities = dashboardData?.data?.recentActivities?.map((activity) => ({
+  const recentActivities = dashboardResponse?.data?.recentActivities?.map((activity) => ({
     type: activity.type,
     icon: getActivityIcon(activity.type),
     iconColor: getActivityIconColor(activity.type),
@@ -186,9 +190,9 @@ const Dashboard = () => {
     <main className="grow bg-gray-50 dark:bg-gray-900">
       <div className={`mx-auto w-full px-4 pb-8 sm:px-6 lg:px-8 ${sidebarOpen ? 'pt-6' : 'pt-4'}`}>
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               Dashboard Overview
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">

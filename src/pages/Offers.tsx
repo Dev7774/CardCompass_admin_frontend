@@ -100,7 +100,7 @@ const Offers = () => {
     <main className="grow bg-gray-50 dark:bg-gray-900">
       <div className={`mx-auto w-full px-4 pb-8 sm:px-6 lg:px-8 ${sidebarOpen ? 'pt-6' : 'pt-4'}`}>
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Button
@@ -113,24 +113,24 @@ const Offers = () => {
                 Back
               </Button>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               {card.name} - Offers
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Manage offers for this credit card
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
-              className="flex items-center"
+              className="flex items-center justify-center w-full sm:w-auto"
               onClick={() => setEditAllModalOpen(true)}
             >
               <Edit className="w-4 h-4 mr-2" />
               Edit All
             </Button>
             <Button
-              className="flex items-center bg-primary-600 hover:bg-primary-700"
+              className="flex items-center justify-center bg-primary-600 hover:bg-primary-700 w-full sm:w-auto"
               onClick={() => {
                 setSelectedOffer(null);
                 setOfferModalOpen(true);
@@ -143,10 +143,10 @@ const Offers = () => {
         </div>
 
         {/* Card Summary */}
-        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-start gap-4">
+        <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start gap-4">
             {card.image && !imageError ? (
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 mx-auto sm:mx-0">
                 <img
                   src={card.image}
                   alt={card.name}
@@ -155,15 +155,15 @@ const Offers = () => {
                 />
               </div>
             ) : (
-              <div className="p-3 bg-primary-100 rounded-lg">
+              <div className="p-3 bg-primary-100 rounded-lg mx-auto sm:mx-0">
                 <CreditCard className="w-6 h-6 text-primary-600" />
               </div>
             )}
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            <div className="flex-1 w-full">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 text-center sm:text-left">
                 {card.name}
               </h2>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-2 mb-4 justify-center sm:justify-start">
                 <span className={`px-3 py-1 text-xs font-medium rounded-full ${getIssuerColor(card.issuer)}`}>
                   {card.issuer}
                 </span>
@@ -174,20 +174,20 @@ const Offers = () => {
                   {card.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="text-center sm:text-left">
                   <span className="text-gray-500 dark:text-gray-400">Annual Fee:</span>
                   <span className="ml-2 font-medium text-gray-900 dark:text-white">
                     {card.annualFee ? `$${card.annualFee}` : '$0'}
                   </span>
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                   <span className="text-gray-500 dark:text-gray-400">Total Offers:</span>
                   <span className="ml-2 font-medium text-gray-900 dark:text-white">
                     {offers.length}
                   </span>
                 </div>
-                <div>
+                <div className="text-center sm:text-left">
                   <span className="text-gray-500 dark:text-gray-400">Current Offer:</span>
                   <span className="ml-2 font-medium text-green-600 dark:text-green-400">
                     {currentOffer?.internalLabel || currentOffer?.signUpBonus || 'None'}
@@ -204,7 +204,8 @@ const Offers = () => {
             <div className="p-8 text-center text-gray-500">No offers found</div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
@@ -393,9 +394,95 @@ const Offers = () => {
                 </table>
               </div>
 
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                {offers.map((offer: Offer) => (
+                  <div key={offer.id} className={`p-4 ${offer.isCurrent ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="text-base font-medium text-gray-900 dark:text-white">
+                          {offer.internalLabel || 'Standard Offer'}
+                        </div>
+                        {offer.isCurrent && (
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={offer.visible}
+                            onChange={() => handleToggleVisible(offer)}
+                            disabled={updateOfferMutation.isPending}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                        </label>
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Sign-Up Bonus:</span>
+                        <div className="text-gray-900 dark:text-white mt-1">{offer.signUpBonus}</div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Min Spend:</span>
+                        <span className="text-gray-900 dark:text-white">{offer.minimumSpend ? `$${offer.minimumSpend.toLocaleString()}` : 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Time Period:</span>
+                        <span className="text-gray-900 dark:text-white">{offer.timePeriod || 'N/A'}</span>
+                      </div>
+                      {offer.referralUrl && (
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Referral URL:</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-gray-900 dark:text-white text-xs truncate flex-1">
+                              {offer.referralUrl.length > 40 ? `${offer.referralUrl.substring(0, 40)}...` : offer.referralUrl}
+                            </span>
+                            <button
+                              onClick={() => handleCopyUrl(offer.referralUrl!)}
+                              className="text-primary-600 hover:text-primary-700"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {earnMultipliers.map((mult: EarnMultiplier, index: number) => (
+                  <div key={`mult-${index}`} className="p-4 bg-blue-50 dark:bg-blue-900/10">
+                    <div className="text-base font-medium text-gray-900 dark:text-white mb-3">
+                      Other Offer
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="text-gray-500 dark:text-gray-400">Category:</span>
+                        <div className="text-gray-900 dark:text-white mt-1">{mult.spendBonusCategoryName || 'N/A'}</div>
+                        {mult.spendBonusDesc && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{mult.spendBonusDesc}</div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Multiplier:</span>
+                        <span className="text-gray-900 dark:text-white">{mult.earnMultiplier ? `${mult.earnMultiplier}X` : 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Group:</span>
+                        <span className="text-gray-900 dark:text-white">{mult.spendBonusCategoryGroup || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               {/* Pagination */}
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
                   Showing {offers.length} offers and {earnMultipliers.length} earn multipliers
                 </div>
               </div>

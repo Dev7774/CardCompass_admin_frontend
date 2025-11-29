@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CardModal } from '@/components/modals/CardModal';
 import { Search, Plus, Edit, Check, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Card } from '@/services/api/Cards/cardsApi';
+import { Card, CardsResponse } from '@/services/api/Cards/cardsApi';
 
 const Cards = () => {
   const { sidebarOpen } = useOutletContext<{ sidebarOpen: boolean }>();
@@ -31,8 +31,9 @@ const Cards = () => {
   const { data, isLoading, error } = useCards(filters);
   const updateCardMutation = useUpdateCard();
 
-  const cards = data?.data?.data || [];
-  const pagination = data?.data?.pagination || { page: 1, limit: 10, total: 0, pages: 1 };
+  const response = data as CardsResponse | undefined;
+  const cards = response?.data?.data || [];
+  const pagination = response?.data?.pagination || { page: 1, limit: 10, total: 0, pages: 1 };
 
   // Get unique issuers from cards
   const issuers = Array.from(new Set(cards.map(card => card.issuer).filter(Boolean)));
@@ -80,18 +81,18 @@ const Cards = () => {
     <main className="grow bg-gray-50 dark:bg-gray-900">
       <div className={`mx-auto w-full px-4 pb-8 sm:px-6 lg:px-8 ${sidebarOpen ? 'pt-6' : 'pt-4'}`}>
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               Cards Management
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Manage all credit cards and their details
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
-              className="flex items-center bg-primary-600 hover:bg-primary-700"
+              className="flex items-center justify-center bg-primary-600 hover:bg-primary-700 w-full sm:w-auto"
               onClick={() => {
                 navigate('/cards/add');
               }}
@@ -101,7 +102,7 @@ const Cards = () => {
             </Button>
             <Button
               variant="outline"
-              className="flex items-center"
+              className="flex items-center justify-center w-full sm:w-auto"
               onClick={() => {
                 navigate('/cards/add-from-api');
               }}
@@ -182,7 +183,8 @@ const Cards = () => {
             <div className="p-8 text-center text-gray-500">No cards found</div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
@@ -198,7 +200,6 @@ const Cards = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Annual Fee
                       </th>
-
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Active
                       </th>
@@ -242,7 +243,6 @@ const Cards = () => {
                             {card.annualFee ? `$${card.annualFee}` : '$0'}
                           </div>
                         </td>
-                       
                         <td className="px-6 py-4 whitespace-nowrap">
                           <label className="relative inline-flex items-center cursor-pointer">
                             <input
@@ -301,14 +301,95 @@ const Cards = () => {
                 </table>
               </div>
 
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                {cards.map((card) => (
+                  <div key={card.id} className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <button
+                        onClick={() => navigate(`/offers/${card.id}`)}
+                        className="text-base font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 text-left"
+                      >
+                        {card.name}
+                      </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigate(`/cards/edit/${card.id}`);
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Issuer:</span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getIssuerColor(card.issuer)}`}>
+                          {card.issuer}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Category:</span>
+                        <span className="text-sm text-gray-900 dark:text-white">{getCategory(card.cardType)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Annual Fee:</span>
+                        <span className="text-sm text-gray-900 dark:text-white">{card.annualFee ? `$${card.annualFee}` : '$0'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Active:</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={card.active}
+                            onChange={(e) => {
+                              updateCardMutation.mutate({
+                                id: card.id,
+                                data: { active: e.target.checked },
+                              });
+                            }}
+                            disabled={updateCardMutation.isPending}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                        </label>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Featured:</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={card.featured}
+                            onChange={(e) => {
+                              updateCardMutation.mutate({
+                                id: card.id,
+                                data: { featured: e.target.checked },
+                              });
+                            }}
+                            disabled={updateCardMutation.isPending}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                        </label>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Updated:</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{formatDistanceToNow(new Date(card.updatedAt), { addSuffix: true })}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               {/* Pagination */}
               {pagination.pages > 1 && (
-                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
                     Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
                     {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} cards
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"

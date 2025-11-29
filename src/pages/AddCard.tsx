@@ -100,19 +100,19 @@ const AddCard = () => {
     <main className="grow bg-gray-50 dark:bg-gray-900">
       <div className={`mx-auto w-full px-4 pb-8 sm:px-6 lg:px-8 ${sidebarOpen ? 'pt-6' : 'pt-4'}`}>
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/cards')}
-              className="flex items-center"
+              className="flex items-center w-full sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 Add New Card
               </h1>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -124,7 +124,7 @@ const AddCard = () => {
 
         {/* Search Section */}
         <div className="mb-6">
-          <form onSubmit={handleSearch} className="flex gap-2">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
@@ -132,13 +132,13 @@ const AddCard = () => {
                 placeholder="Search for a card by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 border-2 border-gray-300"
+                className="pl-10 border-2 border-gray-300 w-full"
               />
             </div>
             <Button
               type="submit"
               disabled={searching || !searchTerm.trim()}
-              className="flex items-center"
+              className="flex items-center justify-center w-full sm:w-auto"
             >
               {searching ? (
                 <>
@@ -193,9 +193,9 @@ const AddCard = () => {
                     key={apiCard.cardKey}
                     className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white text-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex-1 w-full">
+                        <div className="font-medium text-gray-900 dark:text-white text-base sm:text-lg">
                           {apiCard.cardName}
                         </div>
                         {apiCard.cardIssuer && (
@@ -207,7 +207,7 @@ const AddCard = () => {
                       <Button
                         onClick={() => handleAddCard(apiCard)}
                         disabled={isAdding}
-                        className="flex items-center ml-4"
+                        className="flex items-center justify-center w-full sm:w-auto ml-0 sm:ml-4"
                         variant={apiCard.existsInDb ? "outline" : "default"}
                       >
                         {isAdding ? (

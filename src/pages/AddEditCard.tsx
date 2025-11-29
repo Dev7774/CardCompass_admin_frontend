@@ -335,17 +335,17 @@ const AddEditCard = () => {
     <main className="grow bg-gray-50 dark:bg-gray-900">
       <div className={`mx-auto w-full px-4 pb-8 sm:px-6 lg:px-8 ${sidebarOpen ? 'pt-6' : 'pt-4'}`}>
         {/* Header */}
-        <div className="mb-6 flex items-center gap-4">
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Button
             variant="outline"
             onClick={() => navigate('/cards')}
-            className="flex items-center"
+            className="flex items-center w-full sm:w-auto"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
               {isEditMode ? 'Edit Card' : 'Add New Card'}
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -356,9 +356,9 @@ const AddEditCard = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Card Information */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Basic Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-white">Basic Information</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="cardName" className="text-gray-700 dark:text-gray-300">Card Name *</Label>
                 <Input
@@ -781,18 +781,19 @@ const AddEditCard = () => {
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex justify-end gap-4">
+          <div className="flex flex-col sm:flex-row justify-end gap-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate('/cards')}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={saving}
-              className="bg-primary-600 hover:bg-primary-700"
+              className="bg-primary-600 hover:bg-primary-700 w-full sm:w-auto"
             >
               {saving ? (
                 <>

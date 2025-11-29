@@ -185,6 +185,7 @@ export interface CreateManualCardRequest {
   annualFee?: number | null;
   creditRange?: string | null;
   rewardsDescription?: string | null;
+  baseSpendEarnCategory?: string | null;
   introApr?: string | null;
   regularApr?: string | null;
   active?: boolean;

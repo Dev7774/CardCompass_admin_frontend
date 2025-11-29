@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useActivityLogs } from '@/hooks/apiHooks/Activity/useActivityLog';
+import { ActivityLogResponse } from '@/services/api/Activity/activityApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,8 +33,9 @@ const ActivityLog = () => {
     action: actionFilter !== 'all' ? actionFilter : undefined,
   });
 
-  const activityLogs = data?.data?.data || [];
-  const pagination = data?.data?.pagination || { page: 1, limit: 8, total: 0, pages: 1 };
+  const response = data as ActivityLogResponse | undefined;
+  const activityLogs = response?.data?.data || [];
+  const pagination = response?.data?.pagination || { page: 1, limit: 8, total: 0, pages: 1 };
 
   const getActionIcon = (action: string, entityType: string) => {
     if (action === 'CREATE' && entityType === 'Card') return { icon: Plus, color: 'bg-yellow-100 text-yellow-600' };
@@ -222,12 +224,12 @@ const ActivityLog = () => {
 
           {/* Pagination */}
           {pagination.pages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
                 Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
                 {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} activities
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
