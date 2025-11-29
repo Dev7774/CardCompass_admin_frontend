@@ -631,49 +631,11 @@ const AddEditCard = () => {
             </div>
           )}
 
-          {/* Benefits */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Benefits</h2>
-              <Button type="button" onClick={handleAddBenefit} variant="outline" size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Benefit
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {benefits.map((benefit, index) => (
-                <div key={index} className="flex gap-2 items-start">
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <Input
-                      placeholder="Benefit Title"
-                      value={benefit.benefitTitle}
-                      onChange={(e) => handleBenefitChange(index, 'benefitTitle', e.target.value)}
-                    />
-                    <Input
-                      placeholder="Benefit Description (optional)"
-                      value={benefit.benefitDesc || ''}
-                      onChange={(e) => handleBenefitChange(index, 'benefitDesc', e.target.value)}
-                    />
-                  </div>
-                  {benefits.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemoveBenefit(index)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Earn Multipliers */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          {/* Other Offers*/}
+          {/* <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Earn Multipliers</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Other Offers</h2>
               <Button type="button" onClick={handleAddEarnMultiplier} variant="outline" size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Multiplier
@@ -743,7 +705,47 @@ const AddEditCard = () => {
                 </div>
               ))}
             </div>
+          </div> */}
+
+          {/* Benefits */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Benefits</h2>
+              <Button type="button" onClick={handleAddBenefit} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Benefit
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {benefits.map((benefit, index) => (
+                <div key={index} className="flex gap-2 items-start">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Benefit Title"
+                      value={benefit.benefitTitle}
+                      onChange={(e) => handleBenefitChange(index, 'benefitTitle', e.target.value)}
+                    />
+                    <Input
+                      placeholder="Benefit Description (optional)"
+                      value={benefit.benefitDesc || ''}
+                      onChange={(e) => handleBenefitChange(index, 'benefitDesc', e.target.value)}
+                    />
+                  </div>
+                  {benefits.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRemoveBenefit(index)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
+
 
           {/* Annual Spend Perks */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

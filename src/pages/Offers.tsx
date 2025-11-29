@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useOutletContext, useParams, useNavigate } from 'react-router-dom';
 import { useOffers } from '@/hooks/apiHooks/Offers/useOffers';
 import { useCardById } from '@/hooks/apiHooks/Cards/useCard';
-import { useSetCurrentOffer, useToggleArchiveOffer, useDeleteOffer } from '@/hooks/apiHooks/Offers/useOfferMutations';
 import { OfferModal } from '@/components/modals/OfferModal';
+import { EditAllOffersModal } from '@/components/modals/EditAllOffersModal';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Archive, Trash2, Check, X, Copy, CreditCard, ArrowLeft } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Plus, Edit, Check, X, Copy, CreditCard, ArrowLeft } from 'lucide-react';
 import { Offer } from '@/services/api/Offers/offersApi';
+import { EarnMultiplier } from '@/services/api/Cards/cardsApi';
 
 const Offers = () => {
   const { sidebarOpen } = useOutletContext<{ sidebarOpen: boolean }>();
@@ -18,12 +18,11 @@ const Offers = () => {
 
   const { data: cardData, isLoading: cardLoading } = useCardById(cardId || '');
   const { data: offersData, isLoading: offersLoading } = useOffers(cardId || '');
-  const setCurrentOfferMutation = useSetCurrentOffer(cardId || '');
-  const toggleArchiveMutation = useToggleArchiveOffer(cardId || '');
-  const deleteOfferMutation = useDeleteOffer(cardId || '');
+  const [editAllModalOpen, setEditAllModalOpen] = useState(false);
 
-  const card = cardData?.data;
-  const offers = offersData?.data || [];
+  const card = (cardData as any)?.data;
+  const offers = (offersData as any)?.data || [];
+  const earnMultipliers: EarnMultiplier[] = ((card as any)?.earnMultipliers || []) as EarnMultiplier[];
 
   const getIssuerColor = (issuer: string) => {
     const colors: { [key: string]: string } = {
@@ -53,19 +52,6 @@ const Offers = () => {
     navigator.clipboard.writeText(url);
   };
 
-  const handleSetCurrent = async (offerId: string) => {
-    await setCurrentOfferMutation.mutateAsync(offerId);
-  };
-
-  const handleArchive = async (offerId: string) => {
-    await toggleArchiveMutation.mutateAsync(offerId);
-  };
-
-  const handleDelete = async (offerId: string) => {
-    if (window.confirm('Are you sure you want to delete this offer?')) {
-      await deleteOfferMutation.mutateAsync(offerId);
-    }
-  };
 
   if (cardLoading || offersLoading) {
     return (
@@ -87,7 +73,7 @@ const Offers = () => {
     );
   }
 
-  const currentOffer = offers.find(o => o.isCurrent);
+  const currentOffer = offers.find((o: Offer) => o.isCurrent);
 
   return (
     <main className="grow bg-gray-50 dark:bg-gray-900">
@@ -113,16 +99,26 @@ const Offers = () => {
               Manage offers for this credit card
             </p>
           </div>
-          <Button
-            className="flex items-center bg-primary-600 hover:bg-primary-700"
-            onClick={() => {
-              setSelectedOffer(null);
-              setOfferModalOpen(true);
-            }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Offer
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex items-center"
+              onClick={() => setEditAllModalOpen(true)}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit All
+            </Button>
+            <Button
+              className="flex items-center bg-primary-600 hover:bg-primary-700"
+              onClick={() => {
+                setSelectedOffer(null);
+                setOfferModalOpen(true);
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Offer
+            </Button>
+          </div>
         </div>
 
         {/* Card Summary */}
@@ -201,15 +197,13 @@ const Offers = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Visible
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Actions
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {offers.map((offer, index) => (
+                    {/* Offer Rows */}
+                    {offers.map((offer: Offer, index: number) => (
                       <tr
-                        key={offer.id}
+                        key={`offer-${offer.id}`}
                         className={`${offer.isCurrent ? 'bg-green-50 dark:bg-green-900/20' : index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/50'}`}
                       >
                         <td className="px-6 py-4">
@@ -301,40 +295,64 @@ const Offers = () => {
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
                           </label>
                         </td>
+                      </tr>
+                    ))}
+                    {/* Earn Multiplier Rows */}
+                    {earnMultipliers.map((mult: EarnMultiplier, index: number) => (
+                      <tr
+                        key={`multiplier-${index}`}
+                        className={`${index % 2 === 0 ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-blue-100 dark:bg-blue-900/20'}`}
+                      >
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              Other Offer
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {mult.spendBonusCategoryName || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {mult.spendBonusDesc || ''}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {mult.earnMultiplier ? `${mult.earnMultiplier}X` : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {mult.spendLimit ? `Limit: $${mult.spendLimit}` : ''}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {mult.spendBonusCategoryGroup || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {mult.spendBonusSubcategoryGroup || ''}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-500">N/A</span>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedOffer(offer);
-                                setOfferModalOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              Edit
-                            </Button>
-                            {offer.archived ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(offer.id)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4 mr-1" />
-                                Delete
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleArchive(offer.id)}
-                              >
-                                <Archive className="w-4 h-4 mr-1" />
-                                Archive
-                              </Button>
-                            )}
+                            <X className="w-5 h-5 text-gray-400" />
+                            <span className="text-sm text-gray-500">N/A</span>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={true}
+                              readOnly
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                          </label>
                         </td>
                       </tr>
                     ))}
@@ -345,7 +363,7 @@ const Offers = () => {
               {/* Pagination */}
               <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {offers.length} offers total
+                  Showing {offers.length} offers and {earnMultipliers.length} earn multipliers
                 </div>
               </div>
             </>
@@ -359,6 +377,15 @@ const Offers = () => {
         onOpenChange={setOfferModalOpen}
         cardId={cardId || ''}
         offer={selectedOffer}
+      />
+
+      {/* Edit All Modal */}
+      <EditAllOffersModal
+        open={editAllModalOpen}
+        onOpenChange={setEditAllModalOpen}
+        cardId={cardId || ''}
+        offers={offers}
+        earnMultipliers={earnMultipliers}
       />
     </main>
   );

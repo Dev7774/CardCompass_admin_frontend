@@ -24,7 +24,24 @@ const OffersList = () => {
       if (cards.length === 0) return [];
       const offersPromises = cards.map(card => getOffersByCardId(card.id));
       const results = await Promise.all(offersPromises);
-      return results.flatMap(result => result.data || []);
+      const offers = results.flatMap(result => result.data || []);
+      // Ensure each offer has card information, using cards list as fallback
+      return offers.map(offer => {
+        if (!offer.card && offer.cardId) {
+          const card = cards.find(c => c.id === offer.cardId);
+          if (card) {
+            return {
+              ...offer,
+              card: {
+                id: card.id,
+                name: card.name,
+                issuer: card.issuer,
+              },
+            };
+          }
+        }
+        return offer;
+      });
     },
     enabled: cards.length > 0,
   });
@@ -89,7 +106,6 @@ const OffersList = () => {
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
-                  setPage(1);
                 }}
                 className="pl-10 border-2 border-gray-300"
               />
@@ -100,7 +116,6 @@ const OffersList = () => {
               value={selectedCardId}
               onChange={(e) => {
                 setSelectedCardId(e.target.value);
-                setPage(1);
               }}
               className="appearance-none bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-4 py-2 pr-8 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
@@ -170,23 +185,13 @@ const OffersList = () => {
                           >
                             {offer.card?.name || 'Unknown Card'}
                           </button>
-                          {offer.card?.issuer && (
-                            <div className="mt-1">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getIssuerColor(offer.card.issuer)}`}>
-                                {offer.card.issuer}
-                              </span>
-                            </div>
-                          )}
+                        
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
                             {offer.internalLabel || 'Standard Offer'}
                           </div>
-                          {offer.isCurrent && (
-                            <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
-                              Current
-                            </span>
-                          )}
+                        
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900 dark:text-white">
