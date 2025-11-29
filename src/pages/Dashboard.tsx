@@ -195,18 +195,6 @@ const Dashboard = () => {
               Welcome back! Here's what's happening today.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" className="flex items-center">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Link to="/cards/add">
-              <Button className="flex items-center bg-primary-600 hover:bg-primary-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add New
-              </Button>
-            </Link>
-          </div>
         </div>
 
         {/* Key Metrics Cards */}
