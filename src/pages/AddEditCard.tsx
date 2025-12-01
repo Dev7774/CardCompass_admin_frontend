@@ -371,13 +371,25 @@ const AddEditCard = () => {
               </div>
               <div>
                 <Label htmlFor="cardIssuer" className="text-gray-700 dark:text-gray-300">Card Issuer *</Label>
-                <Input
+                <select
                   id="cardIssuer"
                   value={cardIssuer}
                   onChange={(e) => setCardIssuer(e.target.value)}
                   required
-                  className="mt-1"
-                />
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Select Issuer</option>
+                  <option value="Chase">Chase</option>
+                  <option value="American Express">American Express</option>
+                  <option value="Amex">Amex</option>
+                  <option value="Capital One">Capital One</option>
+                  <option value="Citi">Citi</option>
+                  <option value="Discover">Discover</option>
+                  <option value="Bank of America">Bank of America</option>
+                  <option value="Wells Fargo">Wells Fargo</option>
+                  <option value="US Bank">US Bank</option>
+                  <option value="Barclays">Barclays</option>
+                </select>
               </div>
               <div>
                 <Label htmlFor="cardKey" className="text-gray-700 dark:text-gray-300">Card Key</Label>
@@ -391,23 +403,31 @@ const AddEditCard = () => {
               </div>
               <div>
                 <Label htmlFor="cardNetwork" className="text-gray-700 dark:text-gray-300">Card Network</Label>
-                <Input
+                <select
                   id="cardNetwork"
                   value={cardNetwork}
                   onChange={(e) => setCardNetwork(e.target.value)}
-                  placeholder="Visa, Mastercard, etc."
-                  className="mt-1"
-                />
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Select Network</option>
+                  <option value="Visa">Visa</option>
+                  <option value="Mastercard">Mastercard</option>
+                  <option value="American Express">American Express</option>
+                  <option value="Discover">Discover</option>
+                </select>
               </div>
               <div>
                 <Label htmlFor="cardType" className="text-gray-700 dark:text-gray-300">Card Type</Label>
-                <Input
+                <select
                   id="cardType"
                   value={cardType}
                   onChange={(e) => setCardType(e.target.value)}
-                  placeholder="Personal, Business, etc."
-                  className="mt-1"
-                />
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Select Type</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Business">Business</option>
+                </select>
               </div>
               <div>
                 <Label htmlFor="cardUrl" className="text-gray-700 dark:text-gray-300">Card URL</Label>
@@ -434,13 +454,20 @@ const AddEditCard = () => {
               </div>
               <div>
                 <Label htmlFor="creditRange" className="text-gray-700 dark:text-gray-300">Credit Range</Label>
-                <Input
+                <select
                   id="creditRange"
                   value={creditRange}
                   onChange={(e) => setCreditRange(e.target.value)}
-                  placeholder="e.g., 700-850"
-                  className="mt-1"
-                />
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Select Credit Range</option>
+                  <option value="Excellent">Excellent (750+)</option>
+                  <option value="Good to Excellent">Good to Excellent (700-749)</option>
+                  <option value="Good">Good (670-699)</option>
+                  <option value="Fair to Good">Fair to Good (630-669)</option>
+                  <option value="Fair">Fair (580-629)</option>
+                  <option value="Poor to Fair">Poor to Fair (300-579)</option>
+                </select>
               </div>
               <div>
                 <Label htmlFor="baseSpendEarnCategory" className="text-gray-700 dark:text-gray-300">Base Spend Earn Category</Label>

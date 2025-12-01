@@ -200,7 +200,7 @@ const Offers = () => {
 
         {/* Offers Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          {offers.length === 0 ? (
+          {offers.length === 0 && earnMultipliers.length === 0 ? (
             <div className="p-8 text-center text-gray-500">No offers found</div>
           ) : (
             <>
