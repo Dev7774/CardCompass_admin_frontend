@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useCards } from '@/hooks/apiHooks/Cards/useCards';
+import { useIssuers } from '@/hooks/apiHooks/Cards/useIssuers';
 import { useUpdateCard } from '@/hooks/apiHooks/Cards/useCardMutations';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CardModal } from '@/components/modals/CardModal';
 import { Search, Plus, Edit, Check, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Card, CardsResponse } from '@/services/api/Cards/cardsApi';
+import { Card, CardsResponse, IssuersResponse } from '@/services/api/Cards/cardsApi';
 
 const Cards = () => {
   const { sidebarOpen } = useOutletContext<{ sidebarOpen: boolean }>();
@@ -29,14 +30,16 @@ const Cards = () => {
   };
 
   const { data, isLoading, error } = useCards(filters);
+  const { data: issuersData } = useIssuers();
   const updateCardMutation = useUpdateCard();
 
   const response = data as CardsResponse | undefined;
   const cards = response?.data?.data || [];
   const pagination = response?.data?.pagination || { page: 1, limit: 10, total: 0, pages: 1 };
 
-  // Get unique issuers from cards
-  const issuers = Array.from(new Set(cards.map(card => card.issuer).filter(Boolean)));
+  // Get all unique issuers from the database (not just current page)
+  const issuersResponse = issuersData as IssuersResponse | undefined;
+  const issuers = issuersResponse?.data || [];
 
   const getIssuerColor = (issuer: string) => {
     const colors: { [key: string]: string } = {
@@ -140,7 +143,7 @@ const Cards = () => {
               className="appearance-none bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-md px-4 py-2 pr-8 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="all">All Issuers</option>
-              {issuers.map((issuer) => (
+              {issuers.map((issuer: string) => (
                 <option key={issuer} value={issuer}>
                   {issuer}
                 </option>

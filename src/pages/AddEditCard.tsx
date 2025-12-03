@@ -659,10 +659,10 @@ const AddEditCard = () => {
           )}
 
 
-          {/* Other Offers*/}
+          {/* Earning Categories*/}
           {/* <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Other Offers</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Earning Categories</h2>
               <Button type="button" onClick={handleAddEarnMultiplier} variant="outline" size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Multiplier

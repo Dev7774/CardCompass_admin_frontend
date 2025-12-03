@@ -126,7 +126,7 @@ export const EditAllOffersModal = ({
 
       toast({
         title: 'Success',
-        description: 'All offers and other offers updated successfully',
+        description: 'All offers and earning categories updated successfully',
         variant: 'default',
       });
 
@@ -134,7 +134,7 @@ export const EditAllOffersModal = ({
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update offers and other offers',
+        description: error.message || 'Failed to update offers and earning categories',
         variant: 'destructive',
       });
     } finally {
@@ -148,9 +148,9 @@ export const EditAllOffersModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit All Offers & Other Offers</DialogTitle>
+          <DialogTitle>Edit All Offers & Earning Categories</DialogTitle>
           <DialogDescription>
-            Edit all offers and other offers for this card
+            Edit all offers and earning categories for this card
           </DialogDescription>
         </DialogHeader>
 
@@ -292,15 +292,15 @@ export const EditAllOffersModal = ({
             </div>
           </div>
 
-          {/* Other Offers Section */}
+          {/* Earning Categories Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Other Offers ({earnMultipliers.length})
+                Earning Categories ({earnMultipliers.length})
               </h3>
               <Button type="button" onClick={handleAddEarnMultiplier} variant="outline" size="sm">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Other Offer
+                Add Earning Category
               </Button>
             </div>
             <div className="space-y-4">

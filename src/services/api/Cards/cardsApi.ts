@@ -315,3 +315,24 @@ export const syncCardFromApi = async (
   }
 };
 
+export interface IssuersResponse {
+  success: boolean;
+  message: string;
+  data: string[];
+  statusCode: number;
+}
+
+export const getAllIssuers = async (): Promise<IssuersResponse> => {
+  try {
+    const response = await api.get<IssuersResponse>(
+      `${API_BASE_URL}/cards/issuers`
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    throw new Error(
+      axiosError.response?.data?.message || 'Failed to fetch issuers'
+    );
+  }
+};
+

@@ -340,7 +340,7 @@ const Offers = () => {
                         <td className="px-6 py-4">
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              Other Offer
+                              Earning Category
                             </div>
                           </div>
                         </td>
@@ -457,7 +457,7 @@ const Offers = () => {
                 {earnMultipliers.map((mult: EarnMultiplier, index: number) => (
                   <div key={`mult-${index}`} className="p-4 bg-blue-50 dark:bg-blue-900/10">
                     <div className="text-base font-medium text-gray-900 dark:text-white mb-3">
-                      Other Offer
+                      Earning Category
                     </div>
                     <div className="space-y-2 text-sm">
                       <div>
