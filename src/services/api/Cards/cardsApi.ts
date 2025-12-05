@@ -336,3 +336,25 @@ export const getAllIssuers = async (): Promise<IssuersResponse> => {
   }
 };
 
+export interface DeleteCardResponse {
+  success: boolean;
+  message: string;
+  data: null;
+  statusCode: number;
+}
+
+export const deleteCard = async (id: string, hardDelete: boolean = false): Promise<DeleteCardResponse> => {
+  try {
+    const endpoint = hardDelete 
+      ? `${API_BASE_URL}/cards/${id}/hard-delete`
+      : `${API_BASE_URL}/cards/${id}`;
+    const response = await api.delete<DeleteCardResponse>(endpoint);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    throw new Error(
+      axiosError.response?.data?.message || 'Failed to delete card'
+    );
+  }
+};
+

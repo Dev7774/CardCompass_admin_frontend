@@ -2,11 +2,19 @@ import { useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useCards } from '@/hooks/apiHooks/Cards/useCards';
 import { useIssuers } from '@/hooks/apiHooks/Cards/useIssuers';
-import { useUpdateCard } from '@/hooks/apiHooks/Cards/useCardMutations';
+import { useUpdateCard, useDeleteCard } from '@/hooks/apiHooks/Cards/useCardMutations';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CardModal } from '@/components/modals/CardModal';
-import { Search, Plus, Edit, Check, X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardsResponse, IssuersResponse } from '@/services/api/Cards/cardsApi';
 
@@ -32,6 +40,9 @@ const Cards = () => {
   const { data, isLoading, error } = useCards(filters);
   const { data: issuersData } = useIssuers();
   const updateCardMutation = useUpdateCard();
+  const deleteCardMutation = useDeleteCard();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
 
   const response = data as CardsResponse | undefined;
   const cards = response?.data?.data || [];
@@ -78,6 +89,25 @@ const Cards = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
+  };
+
+  const handleDeleteClick = (card: Card) => {
+    setCardToDelete(card);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (cardToDelete) {
+      deleteCardMutation.mutate(
+        { id: cardToDelete.id, hardDelete: true },
+        {
+          onSuccess: () => {
+            setDeleteDialogOpen(false);
+            setCardToDelete(null);
+          },
+        }
+      );
+    }
   };
 
   return (
@@ -286,17 +316,29 @@ const Cards = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center"
-                            onClick={() => {
-                              navigate(`/cards/edit/${card.id}`);
-                            }}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center"
+                              onClick={() => {
+                                navigate(`/cards/edit/${card.id}`);
+                              }}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              onClick={() => handleDeleteClick(card)}
+                              disabled={deleteCardMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -315,15 +357,26 @@ const Cards = () => {
                       >
                         {card.name}
                       </button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          navigate(`/cards/edit/${card.id}`);
-                        }}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigate(`/cards/edit/${card.id}`);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          onClick={() => handleDeleteClick(card)}
+                          disabled={deleteCardMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -495,6 +548,38 @@ const Cards = () => {
         onOpenChange={setCardModalOpen}
         card={selectedCard}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Card Permanently?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete <strong>{cardToDelete?.name}</strong>? 
+              This action cannot be undone. All associated offers, benefits, earn multipliers, and annual spend perks will also be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setCardToDelete(null);
+              }}
+              disabled={deleteCardMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteCardMutation.isPending}
+            >
+              {deleteCardMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 };

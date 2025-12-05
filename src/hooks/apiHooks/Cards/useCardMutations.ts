@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createCard, createManualCard, updateCard, syncCardFromApi, CreateCardRequest, CreateManualCardRequest, UpdateCardRequest } from '@/services/api/Cards/cardsApi';
+import { createCard, createManualCard, updateCard, syncCardFromApi, deleteCard, CreateCardRequest, CreateManualCardRequest, UpdateCardRequest } from '@/services/api/Cards/cardsApi';
 import { useToast } from '@/hooks/use-toast';
 
 export const useCreateCard = () => {
@@ -85,6 +85,34 @@ export const useSyncCardFromApi = () => {
       toast({
         title: 'Success',
         description: 'Card synced from API successfully',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
+
+export const useDeleteCard = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ id, hardDelete }: { id: string; hardDelete?: boolean }) => 
+      deleteCard(id, hardDelete || false),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+      queryClient.invalidateQueries({ queryKey: ['card', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast({
+        title: 'Success',
+        description: variables.hardDelete 
+          ? 'Card permanently deleted successfully' 
+          : 'Card deleted successfully',
       });
     },
     onError: (error: Error) => {
