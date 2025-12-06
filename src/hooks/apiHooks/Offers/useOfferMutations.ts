@@ -40,18 +40,58 @@ export const useUpdateOffer = (cardId: string) => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateOfferRequest }) =>
       updateOffer(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['offers', cardId] });
-      toast({
-        title: 'Success',
-        description: 'Offer updated successfully',
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['offers', cardId] });
+
+      // Snapshot the previous value
+      const previousOffers = queryClient.getQueryData(['offers', cardId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['offers', cardId], (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((offer: any) =>
+            offer.id === id 
+              ? { ...offer, visible: data.visible !== undefined ? data.visible : offer.visible }
+              : offer
+          ),
+        };
       });
+
+      // Return a context object with the snapshotted value
+      return { previousOffers };
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousOffers) {
+        queryClient.setQueryData(['offers', cardId], context.previousOffers);
+      }
       toast({
         title: 'Error',
         description: error.message,
         variant: 'destructive',
+      });
+    },
+    onSuccess: (response) => {
+      // Update the cache with the response data directly
+      if (response?.data) {
+        queryClient.setQueryData(['offers', cardId], (old: any) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.map((offer: any) =>
+              offer.id === response.data.id ? response.data : offer
+            ),
+          };
+        });
+      }
+      // Also invalidate allOffers for the OffersList page
+      queryClient.invalidateQueries({ queryKey: ['allOffers'] });
+      toast({
+        title: 'Success',
+        description: 'Offer updated successfully',
       });
     },
   });

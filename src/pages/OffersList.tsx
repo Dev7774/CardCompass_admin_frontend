@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useCards } from '@/hooks/apiHooks/Cards/useCards';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getOffersByCardId, updateOffer, UpdateOfferRequest } from '@/services/api/Offers/offersApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Edit, Check, X, Copy } from 'lucide-react';
+import { Search, Edit, Check, X, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Offer } from '@/services/api/Offers/offersApi';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,6 +14,8 @@ const OffersList = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -67,6 +69,17 @@ const OffersList = () => {
     return true;
   });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredOffers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOffers = filteredOffers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCardId]);
+
   const handleCopyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
   };
@@ -74,6 +87,35 @@ const OffersList = () => {
   const updateOfferMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateOfferRequest }) =>
       updateOffer(id, data),
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['allOffers'] });
+
+      // Snapshot the previous value
+      const previousOffers = queryClient.getQueryData(['allOffers', cards.map((c: any) => c.id).join(',')]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['allOffers', cards.map((c: any) => c.id).join(',')], (old: any) => {
+        if (!old) return old;
+        return old.map((offer: Offer) =>
+          offer.id === id ? { ...offer, visible: data.visible } : offer
+        );
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousOffers };
+    },
+    onError: (error: Error, _variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousOffers) {
+        queryClient.setQueryData(['allOffers', cards.map((c: any) => c.id).join(',')], context.previousOffers);
+      }
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
     onSuccess: (_, variables) => {
       // Invalidate all offers queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ['allOffers'] });
@@ -87,12 +129,9 @@ const OffersList = () => {
         description: 'Offer visibility updated successfully',
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['allOffers'] });
     },
   });
 
@@ -202,7 +241,7 @@ const OffersList = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {filteredOffers.map((offer, index) => (
+                    {paginatedOffers.map((offer, index) => (
                       <tr
                         key={offer.id}
                         className={`${offer.isCurrent ? 'bg-green-50 dark:bg-green-900/20' : index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/50'}`}
@@ -299,6 +338,60 @@ const OffersList = () => {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Showing {startIndex + 1} to {Math.min(endIndex, filteredOffers.length)} of {filteredOffers.length} offers
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // Show first page, last page, current page, and pages around current
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <Button
+                              key={page}
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className={currentPage === page ? "bg-primary-600 hover:bg-primary-700" : ""}
+                            >
+                              {page}
+                            </Button>
+                          );
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return <span key={page} className="px-2">...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
